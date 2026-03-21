@@ -414,6 +414,12 @@ class S42CF_MaskWipe:
         a_over = a[na - tf:]
         b_over = b[:tf]
 
+        # CRITICAL: Wipes are motion transitions — use stable reference frames
+        # (last frame of A, first frame of B) to prevent frame jitter.
+        # Same fix as S42P Transition node.
+        a_ref = a_over[-1]
+        b_ref = b_over[0]
+
         trans_frames = []
         for i in range(tf):
             raw_t = i / max(tf - 1, 1)
@@ -448,7 +454,7 @@ class S42CF_MaskWipe:
                 alpha = (mask >= threshold).astype(np.float32)
 
             alpha_t = torch.from_numpy(alpha).unsqueeze(-1)
-            blended = a_over[i] * (1 - alpha_t) + b_over[i] * alpha_t
+            blended = a_ref * (1 - alpha_t) + b_ref * alpha_t
             trans_frames.append(blended)
 
         parts = [p for p in [a_keep, torch.stack(trans_frames), b_keep] if p.shape[0] > 0]
