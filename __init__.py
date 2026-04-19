@@ -1,8 +1,8 @@
 """
 S42 CutFlow — Comprehensive Video Editing Suite for ComfyUI
 ==============================================================
-42 core + 11 expanded nodes for professional video editing.
-Core: CapCut-class editing. Expanded: BG removal, compositing, LTX 2.3 bridge.
+42 core + 21 expanded nodes for professional video editing.
+Core: CapCut-class editing. Expanded: BG removal, compositing, LTX 2.3 bridge, Advanced Audio & Latent Ops.
 
 Repository: https://github.com/GeekyGhost/S42-CutFlow
 License: MIT
@@ -22,11 +22,12 @@ from .cf_audio_sync import NODE_CLASS_MAPPINGS as AUDIO_NODES, NODE_DISPLAY_NAME
 from .cf_preview import NODE_CLASS_MAPPINGS as PREVIEW_NODES, NODE_DISPLAY_NAME_MAPPINGS as PREVIEW_DISPLAY
 from .cf_utilities import NODE_CLASS_MAPPINGS as UTIL_NODES, NODE_DISPLAY_NAME_MAPPINGS as UTIL_DISPLAY
 
-# ── Expanded nodes (11) ─────────────────────────────────────────
+# ── Expanded nodes (21) ─────────────────────────────────────────
 from .cf_bg_remover import NODE_CLASS_MAPPINGS as BGRM_NODES, NODE_DISPLAY_NAME_MAPPINGS as BGRM_DISPLAY
 from .cf_layer_composer import NODE_CLASS_MAPPINGS as LAYER_NODES, NODE_DISPLAY_NAME_MAPPINGS as LAYER_DISPLAY
 from .cf_ltx_bridge import NODE_CLASS_MAPPINGS as LTX_NODES, NODE_DISPLAY_NAME_MAPPINGS as LTX_DISPLAY
 from .cf_transitions import NODE_CLASS_MAPPINGS as TRANS_NODES, NODE_DISPLAY_NAME_MAPPINGS as TRANS_DISPLAY
+from .cf_audio_advanced import NODE_CLASS_MAPPINGS as ADV_AUDIO_NODES, NODE_DISPLAY_NAME_MAPPINGS as ADV_AUDIO_DISPLAY
 
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
@@ -34,13 +35,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 for mapping in [CLIP_OPS_NODES, SPEED_NODES, FILTER_NODES, TEMPORAL_NODES,
                 TEXT_NODES, COMP_NODES, STAB_NODES, AUDIO_NODES,
                 PREVIEW_NODES, UTIL_NODES,
-                BGRM_NODES, LAYER_NODES, LTX_NODES, TRANS_NODES]:
+                BGRM_NODES, LAYER_NODES, LTX_NODES, TRANS_NODES, ADV_AUDIO_NODES]:
     NODE_CLASS_MAPPINGS.update(mapping)
 
 for mapping in [CLIP_OPS_DISPLAY, SPEED_DISPLAY, FILTER_DISPLAY, TEMPORAL_DISPLAY,
                 TEXT_DISPLAY, COMP_DISPLAY, STAB_DISPLAY, AUDIO_DISPLAY,
                 PREVIEW_DISPLAY, UTIL_DISPLAY,
-                BGRM_DISPLAY, LAYER_DISPLAY, LTX_DISPLAY, TRANS_DISPLAY]:
+                BGRM_DISPLAY, LAYER_DISPLAY, LTX_DISPLAY, TRANS_DISPLAY, ADV_AUDIO_DISPLAY]:
     NODE_DISPLAY_NAME_MAPPINGS.update(mapping)
 
 WEB_DIRECTORY = "./web"
@@ -50,5 +51,5 @@ __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
 _core = sum(len(m) for m in [CLIP_OPS_NODES, SPEED_NODES, FILTER_NODES, TEMPORAL_NODES,
                                TEXT_NODES, COMP_NODES, STAB_NODES, AUDIO_NODES,
                                PREVIEW_NODES, UTIL_NODES])
-_expanded = sum(len(m) for m in [BGRM_NODES, LAYER_NODES, LTX_NODES, TRANS_NODES])
+_expanded = sum(len(m) for m in [BGRM_NODES, LAYER_NODES, LTX_NODES, TRANS_NODES, ADV_AUDIO_NODES])
 print(f"\033[93m[S42 CutFlow]\033[0m Loaded {_core} core + {_expanded} expanded = {len(NODE_CLASS_MAPPINGS)} total nodes")
