@@ -1,7 +1,7 @@
 """
 S42 CutFlow — Comprehensive Video Editing Suite for ComfyUI
 ==============================================================
-42 core + 21 expanded nodes for professional video editing.
+42 core + 28 expanded nodes for professional video editing.
 Core: CapCut-class editing. Expanded: BG removal, compositing, LTX 2.3 bridge, Advanced Audio & Latent Ops.
 
 Repository: https://github.com/GeekyGhost/S42-CutFlow
@@ -22,7 +22,7 @@ from .cf_audio_sync import NODE_CLASS_MAPPINGS as AUDIO_NODES, NODE_DISPLAY_NAME
 from .cf_preview import NODE_CLASS_MAPPINGS as PREVIEW_NODES, NODE_DISPLAY_NAME_MAPPINGS as PREVIEW_DISPLAY
 from .cf_utilities import NODE_CLASS_MAPPINGS as UTIL_NODES, NODE_DISPLAY_NAME_MAPPINGS as UTIL_DISPLAY
 
-# ── Expanded nodes (21) ─────────────────────────────────────────
+# ── Expanded nodes (28) ─────────────────────────────────────────
 from .cf_bg_remover import NODE_CLASS_MAPPINGS as BGRM_NODES, NODE_DISPLAY_NAME_MAPPINGS as BGRM_DISPLAY
 from .cf_layer_composer import NODE_CLASS_MAPPINGS as LAYER_NODES, NODE_DISPLAY_NAME_MAPPINGS as LAYER_DISPLAY
 from .cf_ltx_bridge import NODE_CLASS_MAPPINGS as LTX_NODES, NODE_DISPLAY_NAME_MAPPINGS as LTX_DISPLAY
