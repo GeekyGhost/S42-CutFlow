@@ -2,7 +2,7 @@
 
 Workflows are being tweaked, audio editing nodes are coming also. Bringing all my tools to this one suite. 
 
-**42 core + 11 expanded = 53 nodes for professional video editing within ComfyUI's node graph.** CapCut-class editing power with zero GPU model dependencies. Trim, split, speed ramp, filter, color grade, overlay text, picture-in-picture, stabilize, beat-sync, transitions, background removal, multi-layer compositing, and LTX 2.3 bridge utilities — all within your ComfyUI workflow.
+**42 core + 11 expanded = 53 nodes for professional video editing within ComfyUI's node graph. Massive editing power with zero GPU model dependencies. Trim, split, speed ramp, filter, color grade, overlay text, picture-in-picture, stabilize, beat-sync, transitions, background removal, multi-layer compositing, and LTX 2.3 bridge utilities — all within your ComfyUI workflow.
 
 > **DON'T PANIC** — Every node works on standard ComfyUI IMAGE batches. Connect to any video loader (VHS/GGF) and any video output node. No special formats, no VRAM pressure. Your towel is optional but recommended.
 
@@ -54,7 +54,7 @@ Workflows are being tweaked, audio editing nodes are coming also. Bringing all m
 | **Utilities** | 5 | Aspect ratio conversion, batch resize, channel ops, image→clip, clip→GIF |
 | ***Core Total*** | ***42*** | *Complete video editing pipeline* |
 | | | |
-| **Transitions** *(expanded)* | 1 | 20 CapCut-style transitions: dissolve, fade, push, wipe, zoom, spin, iris, slide, glitch |
+| **Transitions** *(expanded)* | 1 | 20 transitions: dissolve, fade, push, wipe, zoom, spin, iris, slide, glitch |
 | **BG Remover** *(expanded)* | 1 | BiRefNet, RMBG-2.0, rembg, chroma/luma key — batch video with temporal consistency |
 | **Layer Composer** *(expanded)* | 1 | 5-layer compositor with 14 blend modes, foreground placement, alpha compositing |
 | **LTX 2.3 Bridge** *(expanded)* | 8 | Guide frame prep, frame calculator, subject isolate, background plate, segment prep, audio conditioning, post-process, scene describer |
@@ -69,7 +69,7 @@ Workflows are being tweaked, audio editing nodes are coming also. Bringing all m
 
 **The problem:** ComfyUI is incredible for AI image and video generation, but once you have generated footage, you're forced to leave the node graph to perform basic editing — trimming, color grading, adding text, assembling clips. That breaks the creative flow and introduces manual export/import steps.
 
-**The solution:** S42 CutFlow brings CapCut-class editing directly into your ComfyUI graph. Every node operates on standard `IMAGE` batches (the same tensors every ComfyUI node already uses), meaning you can generate a video with LTX, Wan, or any other model, then immediately trim it, color-grade it, add titles, composite it with other clips, and export — all without leaving ComfyUI.
+**The solution:** S42 CutFlow brings editing directly into your ComfyUI graph. Every node operates on standard `IMAGE` batches (the same tensors every ComfyUI node already uses), meaning you can generate a video with LTX, Wan, or any other model, then immediately trim it, color-grade it, add titles, composite it with other clips, and export — all without leaving ComfyUI.
 
 **Who benefits:**
 
@@ -298,7 +298,7 @@ Reverse a clip with optional speed modification.
 
 #### ⏩ S42CF Speed Ramp
 
-CapCut-style speed ramping with presets and custom keyframe curves.
+Professional speed ramping with presets and custom keyframe curves.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -324,7 +324,7 @@ Example: `0:1.0, 12:0.25:ease_in, 36:0.25, 48:1.0:ease_out` = normal → slow-mo
 
 **Available easings:** `linear`, `ease_in`, `ease_out`, `ease_in_out`, `ease_in_cubic`, `ease_out_cubic`, `ease_in_out_cubic`, `elastic_in`, `elastic_out`, `bounce`
 
-**Why this matters:** Speed ramping is the single most popular effect in modern short-form video editing. It's what gives TikToks and Reels their signature kinetic energy. The presets replicate CapCut's most-used speed curves — `bullet_time` alone covers 80% of dramatic slow-motion use cases. The custom keyframe string gives you frame-level control with proper easing functions, something that usually requires a full NLE's curve editor.
+**Why this matters:** Speed ramping is the single most popular effect in modern short-form video editing. It's what gives TikToks and Reels their signature kinetic energy. The presets replicate industry most-used speed curves — `bullet_time` alone covers 80% of dramatic slow-motion use cases. The custom keyframe string gives you frame-level control with proper easing functions, something that usually requires a full NLE's curve editor.
 
 **Use cases beyond video editing:** Create dynamic product demos with dramatic pauses on key features, build sports highlight reels with automatic slow-motion on impact moments, generate stylized AI video output with variable-speed playback.
 
@@ -1018,7 +1018,7 @@ These nodes extend CutFlow with professional transitions, AI-powered background 
 
 #### 🔀 S42CF Transition
 
-20 CapCut-style transitions between two video clips. Supports blending transitions (dissolve, fade, glitch) that use per-frame overlap, and motion transitions (push, wipe, zoom, spin, iris, slide) that use stable reference frames to prevent jitter.
+20 transitions between two video clips. Supports blending transitions (dissolve, fade, glitch) that use per-frame overlap, and motion transitions (push, wipe, zoom, spin, iris, slide) that use stable reference frames to prevent jitter.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -1521,7 +1521,7 @@ S42-CutFlow/
 ├── cf_audio_sync.py      # Audio trim, beat snap, AV sync
 ├── cf_preview.py         # Quick preview, thumbnails, info, compare, histogram
 ├── cf_utilities.py       # Aspect, resize, channels, img→clip, clip→GIF
-├── cf_transitions.py     # [EXPANDED] 20 CapCut-style transitions
+├── cf_transitions.py     # [EXPANDED] 20 transitions
 ├── cf_bg_remover.py      # [EXPANDED] Background removal (AI + traditional)
 ├── cf_layer_composer.py  # [EXPANDED] 5-layer video compositor
 ├── cf_ltx_bridge.py      # [EXPANDED] LTX 2.3 bridge (8 nodes)
