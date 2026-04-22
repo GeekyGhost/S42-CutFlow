@@ -16,7 +16,7 @@ Workflows are being tweaked, audio editing nodes are coming also. Bringing all m
 - [Quick Start](#quick-start)
 - [Node Reference — Core (42 Nodes)](#node-reference--core-42-nodes)
   - [Clip Operations (8)](#clip-operations-8)
-  - [Filters & Color (7)](#filters--color-7)
+  - [Filters &  (7)](#filters---7)
   - [Temporal FX (3)](#temporal-fx-3)
   - [Text & Overlays (4)](#text--overlays-4)
   - [Composition & Motion (6)](#composition--motion-6)
@@ -562,7 +562,7 @@ Rich text rendering with stroke, shadow, background, and positioning.
 | `bg_padding` | int | 0 | Background box padding (0=no box) |
 | `bg_opacity` | float | 0.5 | Background box opacity |
 
-**Why this matters:** Text Overlay replaces the need to leave ComfyUI for simple title card creation. It supports all the essentials: multi-line text, stroke outlines for readability over busy backgrounds, drop shadows for depth, and semi-transparent background boxes (the "YouTube subtitle" look). The hex color picker integrates directly into the ComfyUI widget, so you can pick colors visually rather than typing hex codes. Position values are normalized (0-1) so they work at any resolution.
+**Why this matters:** Text Overlay replaces the need to leave ComfyUI for simple title card creation. It supports all the essentials: multi-line text, stroke outlines for readability over busy backgrounds, drop shadows for depth, and semi-transparent background boxes (the "YouTube subtitle" look). The hex color picker (currently not working as intended) integrates directly into the ComfyUI widget, so you can pick colors visually rather than typing hex codes. Position values are normalized (0-1) so they work at any resolution.
 
 **Use cases beyond video editing:** Add branded titles to generated content, create meme-style text overlays, add annotation text to tutorial recordings, generate titled thumbnails from video frames.
 
@@ -1499,9 +1499,9 @@ pip install opencv-python
 - Models are cached in your HuggingFace cache directory after first download.
 - If download fails, check your firewall/proxy settings.
 
-### Color picker not showing
-- The color picker widget requires the web extension in `web/js/color_picker.js`.
-- If color pickers show as plain text inputs, verify the `web/` directory exists and ComfyUI loaded the extension.
+### Color picker not showing -This is currently broken
+- The color picker widget requires the web extension in `web/js/color_picker.js`. -This is currently broken
+- If color pickers show as plain text inputs, verify the `web/` directory exists and ComfyUI loaded the extension. -This is currently broken
 
 ---
 
