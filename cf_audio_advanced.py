@@ -350,6 +350,77 @@ class S42_LTXAudioSyncTrigger:
 
         return (motion_curve.tolist(), transient_mask)
 
+class S42_AudioFrequencyExtractor:
+    """Separates audio into frequency bands (Bass, Mid, High) and outputs distinct motion/energy curves for each."""
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "audio": ("AUDIO", {"tooltip": "Audio track to analyze."}),
+                "fps": ("FLOAT", {"default": 24.0, "min": 1.0, "max": 120.0, "step": 0.01}),
+                "bass_cutoff": ("INT", {"default": 250, "min": 20, "max": 1000, "tooltip": "Frequencies below this will drive the bass curve."}),
+                "treble_cutoff": ("INT", {"default": 4000, "min": 1000, "max": 10000, "tooltip": "Frequencies above this will drive the treble curve."}),
+            }
+        }
+    RETURN_TYPES = ("FLOAT", "FLOAT", "FLOAT")
+    RETURN_NAMES = ("bass_curve", "mid_curve", "treble_curve")
+    FUNCTION = "extract"
+    CATEGORY = "S42 CutFlow/Audio/Sync"
+
+    def extract(self, audio, fps, bass_cutoff, treble_cutoff):
+        waveform = audio["waveform"]
+        sr = audio["sample_rate"]
+        
+        # Convert to mono
+        if waveform.shape[1] > 1:
+            waveform = waveform.mean(dim=1, keepdim=True)
+            
+        frame_length = int(sr / fps)
+        
+        # Filter into bands
+        bass_wav = F.lowpass_biquad(waveform, sr, bass_cutoff)
+        treble_wav = F.highpass_biquad(waveform, sr, treble_cutoff)
+        mid_wav = waveform - bass_wav - treble_wav
+        
+        def get_curve(wav):
+            sq_wav = wav ** 2
+            pool = torch.nn.AvgPool1d(kernel_size=frame_length, stride=frame_length)
+            envelope = pool(sq_wav).squeeze()
+            max_val = torch.max(envelope)
+            if max_val > 0:
+                envelope = envelope / max_val
+            return envelope.tolist()
+            
+        return (get_curve(bass_wav), get_curve(mid_wav), get_curve(treble_wav))
+
+class S42_AudioReactiveScheduler:
+    """Maps an audio energy curve to a specific value range to drive standard ComfyUI generation parameters."""
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "audio_curve": ("FLOAT", {"forceInput": True, "tooltip": "Plug in a bass, mid, or treble curve here."}),
+                "min_value": ("FLOAT", {"default": 0.0, "min": -100.0, "max": 100.0, "step": 0.05, "tooltip": "The value when the audio is silent."}),
+                "max_value": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.05, "tooltip": "The value when the audio is peaking."}),
+                "smoothing": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 0.99, "step": 0.01, "tooltip": "Exponential smoothing to reduce erratic frame-by-frame jitter."}),
+            }
+        }
+    RETURN_TYPES = ("FLOAT",)
+    RETURN_NAMES = ("schedule_floats",)
+    FUNCTION = "map_curve"
+    CATEGORY = "S42 CutFlow/Audio/Sync"
+
+    def map_curve(self, audio_curve, min_value, max_value, smoothing):
+        # Maps 0.0-1.0 floats to the target range
+        out = []
+        prev = audio_curve[0] if len(audio_curve) > 0 else 0.0
+        for val in audio_curve:
+            smoothed_val = (val * (1.0 - smoothing)) + (prev * smoothing)
+            mapped = min_value + (smoothed_val * (max_value - min_value))
+            out.append(mapped)
+            prev = smoothed_val
+        return (out,)
+
 class S42_OnsetEnvelopeVisualizer:
     """Generates a deterministic visual heatmap of audio transients/beats."""
     @classmethod
@@ -578,6 +649,47 @@ class S42_NeuralLatentMixer:
             out = (a * b_lat * blend_ratio) + (a * (1.0 - blend_ratio))
 
         return ({"samples": out},)
+
+class S42_AudioLatentWobble:
+    """Pulses specific channels of an image or video latent tensor based on an audio energy curve."""
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "latent": ("LATENT", {"tooltip": "Image or Video latent to be modulated."}),
+                "audio_curve": ("FLOAT", {"forceInput": True, "tooltip": "Connect the bass, mid, or treble curve from the Frequency Extractor."}),
+                "intensity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 5.0, "step": 0.1, "tooltip": "How intensely the beat distorts the latent channels."}),
+                "channel_offset": ("INT", {"default": 0, "min": 0, "max": 15, "step": 1, "tooltip": "Which latent channel to target. Different channels control different structural or color elements."}),
+            }
+        }
+    RETURN_TYPES = ("LATENT",)
+    FUNCTION = "wobble"
+    CATEGORY = "S42 CutFlow/Audio/Latent/Experimental"
+
+    def wobble(self, latent, audio_curve, intensity, channel_offset):
+        samples = latent["samples"].clone()
+        
+        if not audio_curve:
+            return ({"samples": samples},)
+            
+        c = samples.shape[1]
+        target_ch = channel_offset % c
+        
+        if len(samples.shape) == 4:
+            # Standard Image Latent (b, c, h, w)
+            avg_energy = sum(audio_curve) / len(audio_curve)
+            samples[:, target_ch, :, :] *= (1.0 + (avg_energy * intensity))
+            
+        elif len(samples.shape) == 5:
+            # Video Latent (b, c, f, h, w) - Map curve perfectly across frames
+            f = samples.shape[2]
+            curve_len = len(audio_curve)
+            for i in range(f):
+                idx = int((i / max(1, f - 1)) * (curve_len - 1))
+                energy = audio_curve[idx]
+                samples[:, target_ch, i, :, :] *= (1.0 + (energy * intensity))
+                
+        return ({"samples": samples},)
 
 class S42_LatentDisintegration:
     """Injects structural noise directly into the semantic tensor."""
@@ -1524,11 +1636,14 @@ NODE_CLASS_MAPPINGS = {
     "S42_DynamicRangeCompressor": S42_DynamicRangeCompressor,
     "S42_PhaseVocoderTimeStretch": S42_PhaseVocoderTimeStretch,
     "S42_LTXAudioSyncTrigger": S42_LTXAudioSyncTrigger,
+    "S42_AudioFrequencyExtractor": S42_AudioFrequencyExtractor,
+    "S42_AudioReactiveScheduler": S42_AudioReactiveScheduler,
     "S42_OnsetEnvelopeVisualizer": S42_OnsetEnvelopeVisualizer,
     "S42_SpectralMashupEngine": S42_SpectralMashupEngine,
     "S42_AudioLatentEncoder": S42_AudioLatentEncoder,
     "S42_AudioLatentDecoder": S42_AudioLatentDecoder,
     "S42_NeuralLatentMixer": S42_NeuralLatentMixer,
+    "S42_AudioLatentWobble": S42_AudioLatentWobble,
     "S42_LatentDisintegration": S42_LatentDisintegration,
     "S42_AudioVisualSynesthesia": S42_AudioVisualSynesthesia,
     "S42_AceStepLatentModifier": S42_AceStepLatentModifier,
@@ -1544,11 +1659,14 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "S42_DynamicRangeCompressor": "Dynamic Range Compressor (S42)",
     "S42_PhaseVocoderTimeStretch": "Phase Vocoder Time Stretch (S42)",
     "S42_LTXAudioSyncTrigger": "LTX Audio Sync Trigger (S42)",
+    "S42_AudioFrequencyExtractor": "🎵 Frequency Extractor (S42)",
+    "S42_AudioReactiveScheduler": "📉 Reactive Parameter Scheduler (S42)",
     "S42_OnsetEnvelopeVisualizer": "Onset Envelope Visualizer (S42)",
     "S42_SpectralMashupEngine": "Spectral Mashup Engine (S42)",
     "S42_AudioLatentEncoder": "Audio Latent Encoder (S42)",
     "S42_AudioLatentDecoder": "Audio Latent Decoder (S42)",
     "S42_NeuralLatentMixer": "Neural Latent Mixer (S42)",
+    "S42_AudioLatentWobble": "🫨 Audio Latent Wobble (S42)",
     "S42_LatentDisintegration": "Latent Disintegration (S42)",
     "S42_AudioVisualSynesthesia": "Audio-Visual Synesthesia (S42)",
     "S42_AceStepLatentModifier": "AceStep Latent Modifier (S42)",
