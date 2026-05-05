@@ -6,7 +6,7 @@ license = { file = "LICENSE.txt" }
 readme = "README.md"
 keywords = ["comfyui", "image-processing", "masking", "cutflow", "workflow", "audio-processing", "video-editing"]
 authors = [
-    { name = "GeekyGhost" }
+    { name = "Geeky Ghost" }
 ]
 dependencies = [
     "torch",
