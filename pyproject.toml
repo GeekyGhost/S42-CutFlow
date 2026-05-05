@@ -1,0 +1,27 @@
+[project]
+name = "comfyui-s42-cutflow"
+description = "Advanced workflow tools and image/video cutting utilities for ComfyUI."
+version = "1.0.0"
+license = { file = "LICENSE.txt" }
+readme = "README.md"
+keywords = ["comfyui", "image-processing", "masking", "cutflow", "workflow"]
+authors = [
+    { name = "GeekyGhost" }
+]
+dependencies = [
+    "torch",
+    "torchvision",
+    "numpy",
+    "Pillow",
+    "opencv-python",
+    "scipy"
+]
+
+[project.urls]
+Repository = "https://github.com/GeekyGhost/S42-CutFlow"
+Issues = "https://github.com/GeekyGhost/S42-CutFlow/issues"
+
+[tool.comfy]
+PublisherId = "GeekyGhost" # Ensure this matches your Comfy Registry username
+DisplayName = "S42 CutFlow"
+Icon = "https://raw.githubusercontent.com/GeekyGhost/S42-CutFlow/main/icon.png"
