@@ -56,7 +56,15 @@ class S42CF_AspectConvert:
         clip = ensure_rgb(clip)
         n, h, w, c = clip.shape
 
-        ratios = {"16:9": 16/9, "9:16": 9/16, "4:3": 4/3, "3:4": 3/4, "1:1": 1.0, "21:9": 21/9, "2.35:1": 2.35}
+        ratios = {
+            "16:9": 16/9, 
+            "9:16": 9/16, 
+            "4:3": 4/3, 
+            "3:4": 3/4, 
+            "1:1": 1.0, 
+            "21:9": 21/9, 
+            "2.35:1": 2.35
+        }
         ratio = ratios.get(target_ratio, custom_ratio)
 
         if w / h > ratio:
@@ -65,6 +73,7 @@ class S42CF_AspectConvert:
         else:
             tw = w
             th = int(w / ratio)
+        
         tw = max(8, (tw // 8) * 8)
         th = max(8, (th // 8) * 8)
 
@@ -72,9 +81,11 @@ class S42CF_AspectConvert:
             result = resize_frames(clip, th, tw)
         elif fit_mode in ("crop_center", "crop_smart"):
             scale = max(tw / w, th / h)
-            scaled_w, scaled_h = int(w * scale), int(h * scale)
+            scaled_w = int(w * scale)
+            scaled_h = int(h * scale)
             scaled = resize_frames(clip, scaled_h, scaled_w)
-            cx, cy = scaled_w // 2, scaled_h // 2
+            cx = scaled_w // 2
+            cy = scaled_h // 2
             x0 = max(0, cx - tw // 2)
             y0 = max(0, cy - th // 2)
             result = scaled[:, y0:y0+th, x0:x0+tw]
@@ -83,9 +94,12 @@ class S42CF_AspectConvert:
             ar, ag, ab = _hex3(bg_color)
             bg_t = torch.tensor([ar, ag, ab])
             result = bg_t.unsqueeze(0).unsqueeze(0).unsqueeze(0).expand(n, th, tw, 3).clone()
+            
             scale = min(tw / w, th / h)
-            new_w, new_h = int(w * scale), int(h * scale)
+            new_w = int(w * scale)
+            new_h = int(h * scale)
             resized = resize_frames(clip, new_h, new_w)
+            
             y_off = (th - new_h) // 2
             x_off = (tw - new_w) // 2
             result[:, y_off:y_off+new_h, x_off:x_off+new_w] = resized
@@ -152,7 +166,11 @@ class S42CF_BatchResize:
         th = max(8, (th // 8) * 8)
 
         if interpolation in ("lanczos", "bicubic") and PIL_AVAILABLE:
-            resampler = Image.Resampling.LANCZOS if interpolation == "lanczos" else Image.Resampling.BICUBIC
+            if interpolation == "lanczos":
+                resampler = Image.Resampling.LANCZOS
+            else:
+                resampler = Image.Resampling.BICUBIC
+                
             results = []
             for i in range(n):
                 pil = frame_to_pil(clip[i])
@@ -160,7 +178,10 @@ class S42CF_BatchResize:
                 results.append(torch.from_numpy(np.array(resized).astype(np.float32) / 255.0))
             result = torch.stack(results)
         else:
-            torch_mode = "nearest" if interpolation == "nearest" else "bilinear"
+            if interpolation == "nearest":
+                torch_mode = "nearest"
+            else:
+                torch_mode = "bilinear"
             result = resize_frames(clip, th, tw, torch_mode)
 
         info = f"BatchResize({mode}): {w}x{h} → {tw}x{th} ({interpolation})"
@@ -184,17 +205,11 @@ class S42CF_ChannelOps:
                     "channel_multiply", "channel_add",
                 ], {
                     "default": "to_grayscale",
-                    "tooltip": "Channel operation to perform.\n"
-                               "extract_* = output single channel as grayscale.\n"
-                               "swap_* = swap two channels.\n"
-                               "to_grayscale = luminance conversion.\n"
-                               "invert = 1-pixel values.\n"
-                               "threshold = binary threshold.\n"
-                               "channel_multiply/add = math between channels."
+                    "tooltip": "Channel operation to perform."
                 }),
                 "threshold_value": ("FLOAT", {
                     "default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01,
-                    "tooltip": "Threshold level for 'threshold' operation. Pixels above = white, below = black."
+                    "tooltip": "Threshold level for 'threshold' operation."
                 }),
                 "multiply_factor": ("FLOAT", {
                     "default": 1.0, "min": 0.0, "max": 5.0, "step": 0.1,
@@ -212,14 +227,11 @@ class S42CF_ChannelOps:
         clip = ensure_rgb(clip)
 
         if operation == "extract_red":
-            ch = clip[:, :, :, 0:1].repeat(1, 1, 1, 3)
-            result = ch
+            result = clip[:, :, :, 0:1].repeat(1, 1, 1, 3)
         elif operation == "extract_green":
-            ch = clip[:, :, :, 1:2].repeat(1, 1, 1, 3)
-            result = ch
+            result = clip[:, :, :, 1:2].repeat(1, 1, 1, 3)
         elif operation == "extract_blue":
-            ch = clip[:, :, :, 2:3].repeat(1, 1, 1, 3)
-            result = ch
+            result = clip[:, :, :, 2:3].repeat(1, 1, 1, 3)
         elif operation == "extract_luminance":
             lum = 0.299 * clip[:, :, :, 0] + 0.587 * clip[:, :, :, 1] + 0.114 * clip[:, :, :, 2]
             result = lum.unsqueeze(-1).repeat(1, 1, 1, 3)
@@ -256,17 +268,14 @@ class S42CF_ImageToClip:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "image": ("IMAGE", {"tooltip": "Single image (or first frame of batch) to convert to video clip."}),
+                "image": ("IMAGE", {"tooltip": "Single image to convert to video clip."}),
                 "duration_mode": (["frames", "seconds"], {
                     "default": "seconds",
-                    "tooltip": "'frames' = specify exact frame count. 'seconds' = specify duration."
+                    "tooltip": "'frames' = specify frame count. 'seconds' = specify duration."
                 }),
-                "frame_count": ("INT", {"default": 48, "min": 1, "max": 9999, "step": 1,
-                    "tooltip": "Number of frames (used in 'frames' mode)."}),
-                "duration_seconds": ("FLOAT", {"default": 2.0, "min": 0.1, "max": 300.0, "step": 0.1,
-                    "tooltip": "Duration in seconds (used in 'seconds' mode)."}),
-                "fps": ("FLOAT", {"default": 24.0, "min": 1.0, "max": 120.0, "step": 0.5,
-                    "tooltip": "FPS for seconds-to-frames conversion."}),
+                "frame_count": ("INT", {"default": 48, "min": 1, "max": 9999, "step": 1}),
+                "duration_seconds": ("FLOAT", {"default": 2.0, "min": 0.1, "max": 300.0, "step": 0.1}),
+                "fps": ("FLOAT", {"default": 24.0, "min": 1.0, "max": 120.0, "step": 0.5}),
             }
         }
 
@@ -297,18 +306,12 @@ class S42CF_ClipToGIF:
         return {
             "required": {
                 "clip": ("IMAGE", {"tooltip": "Video clip to export as GIF."}),
-                "fps": ("FLOAT", {"default": 12.0, "min": 1.0, "max": 50.0, "step": 1.0,
-                    "tooltip": "GIF playback FPS. GIF supports up to ~50fps. 12-15 typical."}),
-                "max_colors": ("INT", {"default": 256, "min": 16, "max": 256, "step": 16,
-                    "tooltip": "Maximum colors in GIF palette. 256 = best quality. 64 = smaller file."}),
-                "loop_count": ("INT", {"default": 0, "min": 0, "max": 100,
-                    "tooltip": "Number of loops. 0 = infinite loop."}),
-                "dither": (["yes", "no"], {
-                    "default": "yes",
-                    "tooltip": "Apply Floyd-Steinberg dithering for smoother gradients at lower color counts."
-                }),
-                "filename_prefix": ("STRING", {"default": "cutflow_gif", "tooltip": "Output filename prefix."}),
-                "optimize": (["yes", "no"], {"default": "yes", "tooltip": "Optimize GIF file size."}),
+                "fps": ("FLOAT", {"default": 12.0, "min": 1.0, "max": 50.0, "step": 1.0}),
+                "max_colors": ("INT", {"default": 256, "min": 16, "max": 256, "step": 16}),
+                "loop_count": ("INT", {"default": 0, "min": 0, "max": 100}),
+                "dither": (["yes", "no"], {"default": "yes"}),
+                "filename_prefix": ("STRING", {"default": "cutflow_gif"}),
+                "optimize": (["yes", "no"], {"default": "yes"}),
             }
         }
 
@@ -330,14 +333,22 @@ class S42CF_ClipToGIF:
         for i in range(n):
             pil_frame = frame_to_pil(clip[i])
             if max_colors < 256 or dither == "yes":
-                dither_mode = Image.Dither.FLOYDSTEINBERG if dither == "yes" else Image.Dither.NONE
+                if dither == "yes":
+                    dither_mode = Image.Dither.FLOYDSTEINBERG
+                else:
+                    dither_mode = Image.Dither.NONE
                 pil_frame = pil_frame.quantize(colors=max_colors, dither=dither_mode).convert("RGB")
             frames_pil.append(pil_frame)
 
         import folder_paths
         output_dir = folder_paths.get_output_directory()
-        existing = [f for f in os.listdir(output_dir) if f.startswith(filename_prefix) and f.endswith(".gif")]
-        counter = len(existing) + 1
+        
+        prefix_files = []
+        for f in os.listdir(output_dir):
+            if f.startswith(filename_prefix) and f.endswith(".gif"):
+                prefix_files.append(f)
+                
+        counter = len(prefix_files) + 1
         filename = f"{filename_prefix}_{counter:04d}.gif"
         filepath = os.path.join(output_dir, filename)
 
