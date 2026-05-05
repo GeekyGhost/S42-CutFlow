@@ -26,4 +26,4 @@ jobs:
       - name: Publish to Registry
         env:
           COMFY_REGISTRY_TOKEN: ${{ secrets.COMFY_REGISTRY_TOKEN }}
-        run: comfy node publish
+        run: comfy --skip-prompt node publish
