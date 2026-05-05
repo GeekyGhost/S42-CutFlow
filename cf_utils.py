@@ -116,33 +116,66 @@ def resize_frames(frames: torch.Tensor, h: int, w: int,
 
 # ── Easing functions ──────────────────────────────────────────────
 
-def ease_linear(t): return t
-def ease_in_quad(t): return t * t
-def ease_out_quad(t): return t * (2.0 - t)
+def ease_linear(t): 
+    return t
+
+def ease_in_quad(t): 
+    return t * t
+
+def ease_out_quad(t): 
+    return t * (2.0 - t)
+
 def ease_in_out_quad(t):
-    return 2.0 * t * t if t < 0.5 else -1.0 + (4.0 - 2.0 * t) * t
-def ease_in_cubic(t): return t ** 3
-def ease_out_cubic(t): return (t - 1.0) ** 3 + 1.0
+    if t < 0.5:
+        return 2.0 * t * t
+    return -1.0 + (4.0 - 2.0 * t) * t
+
+def ease_in_cubic(t): 
+    return t ** 3
+
+def ease_out_cubic(t): 
+    return (t - 1.0) ** 3 + 1.0
+
 def ease_in_out_cubic(t):
-    return 4.0 * t ** 3 if t < 0.5 else 0.5 * (2.0 * t - 2.0) ** 3 + 1.0
+    if t < 0.5:
+        return 4.0 * t ** 3
+    return 0.5 * (2.0 * t - 2.0) ** 3 + 1.0
+
 def ease_in_elastic(t):
-    if t in (0.0, 1.0): return t
+    if t in (0.0, 1.0): 
+        return t
     return -(2.0 ** (10.0 * t - 10.0)) * math.sin((t * 10.0 - 10.75) * (2.0 * math.pi) / 3.0)
+
 def ease_out_elastic(t):
-    if t in (0.0, 1.0): return t
+    if t in (0.0, 1.0): 
+        return t
     return 2.0 ** (-10.0 * t) * math.sin((t * 10.0 - 0.75) * (2.0 * math.pi) / 3.0) + 1.0
+
 def ease_out_bounce(t):
-    n, d = 7.5625, 2.75
-    if t < 1.0 / d: return n * t * t
-    elif t < 2.0 / d: t -= 1.5 / d; return n * t * t + 0.75
-    elif t < 2.5 / d: t -= 2.25 / d; return n * t * t + 0.9375
-    else: t -= 2.625 / d; return n * t * t + 0.984375
+    n = 7.5625
+    d = 2.75
+    if t < 1.0 / d: 
+        return n * t * t
+    elif t < 2.0 / d: 
+        t -= 1.5 / d
+        return n * t * t + 0.75
+    elif t < 2.5 / d: 
+        t -= 2.25 / d
+        return n * t * t + 0.9375
+    else: 
+        t -= 2.625 / d
+        return n * t * t + 0.984375
 
 EASING_FUNCTIONS = {
-    "linear": ease_linear, "ease_in": ease_in_quad, "ease_out": ease_out_quad,
-    "ease_in_out": ease_in_out_quad, "ease_in_cubic": ease_in_cubic,
-    "ease_out_cubic": ease_out_cubic, "ease_in_out_cubic": ease_in_out_cubic,
-    "elastic_in": ease_in_elastic, "elastic_out": ease_out_elastic,
+    "linear": ease_linear, 
+    "ease_in": ease_in_quad, 
+    "ease_out": ease_out_quad,
+    "ease_in_out": ease_in_out_quad, 
+    "ease_in_cubic": ease_in_cubic,
+    "ease_out_cubic": ease_out_cubic, 
+    "ease_in_out_cubic": ease_in_out_cubic,
+    "elastic_in": ease_in_elastic, 
+    "elastic_out": ease_out_elastic,
     "bounce": ease_out_bounce,
 }
 ALL_EASINGS = list(EASING_FUNCTIONS.keys())
@@ -291,8 +324,6 @@ def parse_srt(srt_text: str) -> List[Dict]:
         entries.append({"start_s": start_s, "end_s": end_s, "text": text})
     return entries
 
-
-# ── Blend modes ───────────────────────────────────────────────────
 
 # ── Hex color parser ──────────────────────────────────────────────
 
