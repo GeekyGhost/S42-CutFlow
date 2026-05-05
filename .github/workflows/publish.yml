@@ -1,29 +1,23 @@
 name: Publish to Comfy Registry
 
 on:
+  workflow_dispatch: # Allows manual runs
   push:
     branches:
       - main
-    tags:
-      - 'v*'
-  workflow_dispatch:
+    paths:
+      - "pyproject.toml" # Brilliant! This means it ONLY publishes when you update the version number.
 
 jobs:
-  publish:
+  publish-node:
+    name: Publish Custom Node to registry
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Check out code
         uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+        
+      - name: Publish Custom Node
+        uses: Comfy-Org/publish-node-action@main
         with:
-          python-version: '3.10'
-
-      - name: Install Comfy CLI
-        run: pip install comfy-cli
-
-      - name: Publish to Registry
-        env:
-          COMFY_REGISTRY_TOKEN: ${{ secrets.COMFY_REGISTRY_TOKEN }}
-        run: yes N | comfy node publish --token ${{ secrets.COMFY_REGISTRY_TOKEN }}
+          # Using the secret name we set up earlier!
+          personal_access_token: ${{ secrets.COMFY_REGISTRY_TOKEN }}
