@@ -1,0 +1,27 @@
+name: Publish to Comfy Registry
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on version tags like v1.0.0
+  workflow_dispatch: # Allows you to run it manually from the Actions tab
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Comfy CLI
+        run: pip install comfy-cli
+
+      - name: Publish to Registry
+        env:
+          COMFY_REGISTRY_TOKEN: ${{ secrets.COMFY_REGISTRY_TOKEN }}
+        run: comfy node publish
