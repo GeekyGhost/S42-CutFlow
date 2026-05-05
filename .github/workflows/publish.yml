@@ -3,10 +3,10 @@ name: Publish to Comfy Registry
 on:
   push:
     branches:
-      - main  # Matches the branch in your repository
+      - main
     tags:
-      - 'v*'  # Triggers when you create a version tag
-  workflow_dispatch: # Allows you to test it manually from the Actions tab
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -26,5 +26,4 @@ jobs:
       - name: Publish to Registry
         env:
           COMFY_REGISTRY_TOKEN: ${{ secrets.COMFY_REGISTRY_TOKEN }}
-        # The 'yes N |' auto-answers NO to the telemetry tracking prompt so the script doesn't freeze
-        run: yes N | comfy node publish --token ${{ secrets.COMFY_REGISTRY_TOKEN }} --skip-prompt
+        run: yes N | comfy node publish --token ${{ secrets.COMFY_REGISTRY_TOKEN }}
