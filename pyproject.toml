@@ -25,6 +25,6 @@ Repository = "https://github.com/GeekyGhost/S42-CutFlow"
 Issues = "https://github.com/GeekyGhost/S42-CutFlow/issues"
 
 [tool.comfy]
-PublisherId = "GeekyGhost" 
+PublisherId = "willieg42"
 DisplayName = "S42 CutFlow"
 Icon = "https://raw.githubusercontent.com/GeekyGhost/S42-CutFlow/main/icon.png"
