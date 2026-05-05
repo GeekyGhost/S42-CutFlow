@@ -1,5 +1,7 @@
 # S42 CutFlow — Video Editing Suite for ComfyUI
 
+This is a work in progress, these are nodes being refined and tested to be ported over to LTX Desktop. I've worked on these for years, looks like ComfyOrg has decided to make their own versions of my stuff and take the project from me and try and make money off of it, so this will likely be my last comfyUI repo. 
+
 Workflows are being tweaked, audio editing nodes are coming also. Bringing all my tools to this one suite. 
 
 **42 core + 11 expanded = 53 nodes for professional video editing within ComfyUI's node graph. Massive editing power with zero GPU model dependencies. Trim, split, speed ramp, filter, color grade, overlay text, picture-in-picture, stabilize, beat-sync, transitions, background removal, multi-layer compositing, and LTX 2.3 bridge utilities — all within your ComfyUI workflow.
