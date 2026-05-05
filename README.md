@@ -1556,6 +1556,13 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
+## Shoutouts
+https://github.com/ZhengPeng7/BiRefNet
+https://github.com/zero01101/openOutpaint
+https://github.com/WASasquatch/was-node-suite-comfyui
+
+---
+
 *Built by [Willie Gray Jr](https://github.com/GeekyGhost) as part of the S42 Production Suite ecosystem.*
 
 *53 nodes. 12 workflows. LTX 2.3 ready. Mostly harmless.*
