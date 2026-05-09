@@ -44,6 +44,38 @@ def _get_font(size: int, bold: bool = False):
         return ImageFont.load_default()
 
 
+def _composite_rgba(base_tensor: torch.Tensor, overlay_rgba: torch.Tensor) -> torch.Tensor:
+    """
+    Properly composites an RGBA overlay onto a base tensor (RGB or RGBA) using straight alpha.
+    base_tensor: shape (H, W, C) where C is 3 or 4
+    overlay_rgba: shape (H, W, 4)
+    """
+    o_rgb = overlay_rgba[..., :3]
+    o_a = overlay_rgba[..., 3:4]
+
+    if base_tensor.shape[-1] == 4:
+        b_rgb = base_tensor[..., :3]
+        b_a = base_tensor[..., 3:4]
+
+        # Calculate new alpha: out_a = src_a + dst_a * (1 - src_a)
+        out_a = o_a + b_a * (1.0 - o_a)
+
+        # Prevent division by zero
+        out_a_safe = torch.where(out_a > 0, out_a, torch.ones_like(out_a))
+
+        # Calculate new RGB: out_rgb = (src_rgb * src_a + dst_rgb * dst_a * (1 - src_a)) / out_a
+        out_rgb = (o_rgb * o_a + b_rgb * b_a * (1.0 - o_a)) / out_a_safe
+        
+        # Zero out RGB where alpha is explicitly 0 to keep it perfectly clean
+        out_rgb = torch.where(out_a > 0, out_rgb, torch.zeros_like(out_rgb))
+
+        return torch.cat([out_rgb, out_a], dim=-1).clamp(0, 1)
+    else:
+        # If the base has no alpha, do a standard blend
+        out_rgb = base_tensor * (1.0 - o_a) + o_rgb * o_a
+        return out_rgb.clamp(0, 1)
+
+
 class S42CF_TextOverlay:
     """Rich text rendering with animation support."""
 
@@ -113,7 +145,7 @@ class S42CF_TextOverlay:
         if not PIL_AVAILABLE:
             return (clip, int(clip.shape[0]), "TextOverlay: PIL not available")
 
-        clip = ensure_rgb(clip)
+        # Removed ensure_rgb() to preserve incoming Alpha
         n, h, w, c = clip.shape
         font = _get_font(font_size, bold == "yes")
         from .cf_utils import hex_to_rgb255
@@ -150,14 +182,13 @@ class S42CF_TextOverlay:
         draw.multiline_text((tx, ty), text, font=font, fill=fill,
                             stroke_width=stroke_width, stroke_fill=s_fill, align=alignment)
 
-        overlay = np.array(text_img).astype(np.float32) / 255.0
-        overlay_rgb = torch.from_numpy(overlay[:, :, :3])
-        overlay_alpha = torch.from_numpy(overlay[:, :, 3:4])
+        overlay_np = np.array(text_img).astype(np.float32) / 255.0
+        overlay_tensor = torch.from_numpy(overlay_np)
 
         results = []
         for i in range(n):
-            composited = clip[i] * (1 - overlay_alpha) + overlay_rgb * overlay_alpha
-            results.append(composited.clamp(0, 1))
+            composited = _composite_rgba(clip[i], overlay_tensor)
+            results.append(composited)
 
         result = torch.stack(results)
         info = f"TextOverlay: '{text[:30]}...' size={font_size} pos=({position_x:.2f},{position_y:.2f})"
@@ -175,7 +206,7 @@ class S42CF_SubtitleBurn:
                 "srt_text": ("STRING", {
                     "default": "1\n00:00:00,000 --> 00:00:02,000\nHello World\n\n2\n00:00:02,500 --> 00:00:05,000\nSubtitle Example",
                     "multiline": True,
-                    "tooltip": "SRT format subtitle text. Standard format:\n1\\n00:00:00,000 --> 00:00:02,000\\nText here"
+                    "tooltip": "SRT format subtitle text. Standard format:\n1\n00:00:00,000 --> 00:00:02,000\nText here"
                 }),
                 "fps": ("FLOAT", {"default": 24.0, "min": 1.0, "max": 120.0, "step": 0.5,
                     "tooltip": "Frame rate to convert SRT timestamps to frame indices."}),
@@ -198,17 +229,16 @@ class S42CF_SubtitleBurn:
         if not PIL_AVAILABLE:
             return (clip, int(clip.shape[0]), "SubtitleBurn: PIL not available")
 
-        clip = ensure_rgb(clip)
         n, h, w, c = clip.shape
         subs = parse_srt(srt_text)
         font = _get_font(font_size, style == "cinematic")
 
         style_cfg = {
-            "default": {"fill": (255, 255, 255), "stroke": 2, "stroke_fill": (0, 0, 0), "bg": False},
-            "cinematic": {"fill": (255, 255, 255), "stroke": 0, "stroke_fill": None, "bg": False, "shadow": 3},
-            "youtube": {"fill": (255, 255, 255), "stroke": 0, "stroke_fill": None, "bg": True},
-            "outline_only": {"fill": (255, 255, 255), "stroke": 4, "stroke_fill": (0, 0, 0), "bg": False},
-        }.get(style, {"fill": (255, 255, 255), "stroke": 2, "stroke_fill": (0, 0, 0), "bg": False})
+            "default": {"fill": (255, 255, 255, 255), "stroke": 2, "stroke_fill": (0, 0, 0, 255), "bg": False},
+            "cinematic": {"fill": (255, 255, 255, 255), "stroke": 0, "stroke_fill": None, "bg": False, "shadow": 3},
+            "youtube": {"fill": (255, 255, 255, 255), "stroke": 0, "stroke_fill": None, "bg": True},
+            "outline_only": {"fill": (255, 255, 255, 0), "stroke": 4, "stroke_fill": (0, 0, 0, 255), "bg": False},
+        }.get(style, {"fill": (255, 255, 255, 255), "stroke": 2, "stroke_fill": (0, 0, 0, 255), "bg": False})
 
         results = []
         for i in range(n):
@@ -223,8 +253,8 @@ class S42CF_SubtitleBurn:
                 results.append(clip[i])
                 continue
 
-            pil_frame = frame_to_pil(clip[i])
-            draw = ImageDraw.Draw(pil_frame)
+            overlay_img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(overlay_img)
             text = active_sub["text"]
 
             bbox = draw.multiline_textbbox((0, 0), text, font=font, stroke_width=style_cfg.get("stroke", 0))
@@ -239,7 +269,7 @@ class S42CF_SubtitleBurn:
 
             if style_cfg.get("shadow"):
                 s = style_cfg["shadow"]
-                draw.multiline_text((tx + s, ty + s), text, font=font, fill=(0, 0, 0), align="center")
+                draw.multiline_text((tx + s, ty + s), text, font=font, fill=(0, 0, 0, 180), align="center")
 
             draw.multiline_text((tx, ty), text, font=font,
                                 fill=style_cfg["fill"],
@@ -247,7 +277,10 @@ class S42CF_SubtitleBurn:
                                 stroke_fill=style_cfg.get("stroke_fill"),
                                 align="center")
 
-            results.append(pil_to_frame(pil_frame))
+            overlay_np = np.array(overlay_img).astype(np.float32) / 255.0
+            overlay_tensor = torch.from_numpy(overlay_np)
+            composited = _composite_rgba(clip[i], overlay_tensor)
+            results.append(composited)
 
         result = torch.stack(results)
         info = f"SubtitleBurn: {len(subs)} subtitles, style={style}"
@@ -295,12 +328,17 @@ class S42CF_Watermark:
         if not PIL_AVAILABLE:
             return (clip, int(clip.shape[0]), "Watermark: PIL not available")
 
-        clip = ensure_rgb(clip)
         n, h, w, c = clip.shape
 
         if mode == "image" and watermark_image is not None:
-            wm_frame = ensure_rgb(watermark_image)[0]
-            wm_pil = frame_to_pil(wm_frame)
+            wm_tensor = watermark_image[0]
+            # Convert tensor to PIL safely preserving Alpha if C=4
+            wm_np = (wm_tensor.cpu().numpy() * 255.0).clip(0, 255).astype(np.uint8)
+            if wm_tensor.shape[-1] == 4:
+                wm_pil = Image.fromarray(wm_np, "RGBA")
+            else:
+                wm_pil = Image.fromarray(wm_np, "RGB").convert("RGBA")
+
             new_w = int(wm_pil.width * scale)
             new_h = int(wm_pil.height * scale)
             wm_pil = wm_pil.resize((new_w, new_h), Image.Resampling.LANCZOS)
@@ -315,7 +353,7 @@ class S42CF_Watermark:
             draw.text((5, 5), text, font=font, fill=(255, 255, 255, 255))
             new_w, new_h = tw, th
 
-        wm_np = np.array(wm_pil.convert("RGBA")).astype(np.float32) / 255.0
+        wm_np = np.array(wm_pil).astype(np.float32) / 255.0
 
         if position == "tile":
             full_wm = np.zeros((h, w, 4), dtype=np.float32)
@@ -326,8 +364,8 @@ class S42CF_Watermark:
                     sh = y2 - ty
                     sw = x2 - tx
                     full_wm[ty:y2, tx:x2] = wm_np[:sh, :sw]
-            wm_rgb = torch.from_numpy(full_wm[:, :, :3])
-            wm_alpha = torch.from_numpy(full_wm[:, :, 3:4]) * opacity
+            full_wm_tensor = torch.from_numpy(full_wm)
+            full_wm_tensor[..., 3:4] *= opacity # scale opacity
         else:
             pos_map = {
                 "bottom_right": (w - new_w - margin, h - new_h - margin),
@@ -344,13 +382,14 @@ class S42CF_Watermark:
             x2 = min(px + new_w, w)
             sh, sw = y2 - py, x2 - px
             full_wm[py:y2, px:x2] = wm_np[:sh, :sw]
-            wm_rgb = torch.from_numpy(full_wm[:, :, :3])
-            wm_alpha = torch.from_numpy(full_wm[:, :, 3:4]) * opacity
+            
+            full_wm_tensor = torch.from_numpy(full_wm)
+            full_wm_tensor[..., 3:4] *= opacity # scale opacity
 
         results = []
         for i in range(n):
-            composited = clip[i] * (1 - wm_alpha) + wm_rgb * wm_alpha
-            results.append(composited.clamp(0, 1))
+            composited = _composite_rgba(clip[i], full_wm_tensor)
+            results.append(composited)
 
         result = torch.stack(results)
         info = f"Watermark({mode}): position={position}, opacity={opacity}"
@@ -390,7 +429,6 @@ class S42CF_LowerThird:
         if not PIL_AVAILABLE:
             return (clip, int(clip.shape[0]), "LowerThird: PIL not available")
 
-        clip = ensure_rgb(clip)
         n, h, w, c = clip.shape
         end_frame = start_frame + duration_frames
 
@@ -416,7 +454,6 @@ class S42CF_LowerThird:
             else:
                 slide = 1.0
 
-            pil_frame = frame_to_pil(clip[i])
             overlay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
             draw = ImageDraw.Draw(overlay)
 
@@ -456,10 +493,10 @@ class S42CF_LowerThird:
                           fill=(*accent, int(255 * slide)))
 
             overlay_np = np.array(overlay).astype(np.float32) / 255.0
-            o_rgb = torch.from_numpy(overlay_np[:, :, :3])
-            o_alpha = torch.from_numpy(overlay_np[:, :, 3:4])
-            composited = clip[i] * (1 - o_alpha) + o_rgb * o_alpha
-            results.append(composited.clamp(0, 1))
+            overlay_tensor = torch.from_numpy(overlay_np)
+            
+            composited = _composite_rgba(clip[i], overlay_tensor)
+            results.append(composited)
 
         result = torch.stack(results)
         info = f"LowerThird({style}): '{name}' / '{title}' frames {start_frame}-{end_frame}"
