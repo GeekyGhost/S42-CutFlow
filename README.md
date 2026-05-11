@@ -1,6 +1,6 @@
 # S42 CutFlow — Video Editing Suite for ComfyUI
 
-This is a work in progress, these are nodes being refined and tested to be ported over to LTX Desktop. I've worked on these for years, looks like ComfyOrg has decided to make their own versions and making them core, so this will likely be my last comfyUI repo. Future work will be released in my LTX Desktop repo coming at the end of june/beggining of july. 
+This is a work in progress, these are nodes being refined and tested to be ported over to LTX Desktop. I've worked on these for years.
 
 Workflows are being tweaked, audio editing nodes are coming also. Bringing all my tools to this one suite. 
 
